@@ -6,5 +6,3 @@ This research aims to develop an accurate and personalized model for estimating 
 **Objectives:**
 1.	To design and implement a predictive model that leverages features such as age, gender, height, weight, heart rate, body temperature, and duration of activity to estimate individual calorie burn with high accuracy.
 2.	To analyse and quantify the relative impact of each input variable on energy expenditure, identifying key predictors and exploring their interdependencies through statistical and machine learning techniques.
-![image](https://github.com/user-attachments/assets/a90655af-45b0-4839-b0c7-c31ce7ed6dca)
-
