@@ -34,6 +34,7 @@ def setup_page():
         """, unsafe_allow_html=True)
     
     st.title("Calorie Expenditure Prediction Analysis")
+    st.markdown("""<hr style="border: 1px solid #333;">""", unsafe_allow_html=True)
 
 # Load Data
 def load_data():
@@ -62,15 +63,15 @@ def clean_data(df):
     return df
 
 def show_data_overview(df):
-    st.header("Dataset Overview")
+    st.header(":blue[Dataset Overview]")
     
     # Show descriptive statistics for the dataset
-    st.subheader("Sample Data")
+    st.subheader(":green[Sample Data]")
     st.write("Here are the first few rows of the dataset to give you an overview of the data:")
     st.dataframe(df.head(), use_container_width=True)
     
     # Display dataset dimensions with descriptions
-    st.subheader("Dataset Size")
+    st.subheader(":green[Dataset Size]")
     st.write("The dimensions of the dataset are:")
     shape_df = pd.DataFrame([
         {'Metric': 'Number of Rows', 'Value': df.shape[0]},
@@ -79,7 +80,7 @@ def show_data_overview(df):
     st.dataframe(shape_df.set_index('Metric').T, use_container_width=True)
     
     # Show detailed column information with descriptions
-    st.subheader("Column Details") 
+    st.subheader(":green[Column Details]") 
     st.write("Information about each column in the dataset:")
     info_df = pd.DataFrame([
         {'Metric': 'Number of Valid Values'} | {col: df[col].count() for col in df.columns},
@@ -90,10 +91,10 @@ def show_data_overview(df):
 
 
 def perform_eda(df):
-    st.header("Exploratory Data Analysis")
+    st.header(":blue[Exploratory Data Analysis]")
     
     # Numerical columns distribution
-    st.subheader("Numerical Features Distribution")
+    st.subheader(":green[Numerical Features Distribution]")
     num_cols = df.select_dtypes(include=['float64', 'int64']).columns
     
     # Remove ID column if it exists
@@ -166,13 +167,13 @@ def perform_eda(df):
 
 
 def perform_statistical_analysis(df):
-    st.header("Statistical Analysis")
+    st.header(":blue[Statistical Analysis]")
 
     # Get only numeric columns for correlation and hypothesis testing
     numeric_df = df.select_dtypes(include=['float64', 'int64'])
     
     # Correlation Analysis
-    st.subheader("Correlation Analysis")
+    st.subheader(":green[Correlation Analysis]")
     with st.container(border=True):
         corr = numeric_df.corr()
         
@@ -218,7 +219,7 @@ def perform_statistical_analysis(df):
         st.plotly_chart(fig2, use_container_width=True)
     
     # Normality Testing
-    st.subheader("Normality Testing")
+    st.subheader(":green[Normality Testing]")
     st.write("""
     The Shapiro-Wilk test checks if data follows a normal distribution:
     - Null hypothesis (H0): Data is normally distributed
@@ -243,7 +244,7 @@ def perform_statistical_analysis(df):
         st.dataframe(results_df.T, use_container_width=True)
 
     # Cohort Analysis by Sex
-    st.subheader("Cohort Analysis by Sex")
+    st.subheader(":green[Cohort Analysis by Sex]")
     st.write("""
     Mann-Whitney U test compares distributions between male and female groups:
     - Null hypothesis (H0): No significant difference between groups
@@ -285,7 +286,7 @@ def perform_statistical_analysis(df):
 def preprocess_data(df, sample_size=10000, page="Data Preprocessing"):
 
     if page == "Data Preprocessing":
-        st.header("Data Preprocessing")
+        st.header(":blue[Data Preprocessing]")
 
     # Reduce dataset to 1000 records
     if len(df) > sample_size:
@@ -338,7 +339,9 @@ def preprocess_data(df, sample_size=10000, page="Data Preprocessing"):
         st.write("Numeric features will be standardized using StandardScaler")
         st.write("Categorical features will be one-hot encoded, dropping first category")
         
-        st.subheader("Feature Selection")
+        st.markdown('---')
+
+        st.header(":blue[Feature Selection]")
         st.write("Applying preprocessing transformations to features")
         processed_df = pd.DataFrame(X_processed)
         st.write("Processed features after scaling and encoding:")
@@ -354,8 +357,18 @@ def preprocess_data(df, sample_size=10000, page="Data Preprocessing"):
     
     return X_selected, y, preprocessor, selector
 
+
+
+
+def rmsle(y_true, y_pred):
+    # Add small constant to avoid log(0)
+    y_true = np.clip(y_true, 1e-15, None)
+    y_pred = np.clip(y_pred, 1e-15, None)
+    return np.sqrt(mean_squared_error(np.log(y_true), np.log(y_pred)))
+
+
 def build_models(X_selected, y):
-    st.header("Model Building and Selection")
+    st.header(":blue[Model Building]")
     
     # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(X_selected, y, test_size=0.2, random_state=42)
@@ -363,8 +376,8 @@ def build_models(X_selected, y):
     models = {
         'Linear Regression': LinearRegression(),
         'Decision Tree': DecisionTreeRegressor(),
-        'Random Forest': RandomForestRegressor(),
-        'Gradient Boosting': GradientBoostingRegressor()
+        # 'Random Forest': RandomForestRegressor(),
+        # 'Gradient Boosting': GradientBoostingRegressor()
     }
     
     results = {}
@@ -372,59 +385,76 @@ def build_models(X_selected, y):
     best_model = None
     best_model_name = None
     
-    def rmsle(y_true, y_pred):
-        # Add small constant to avoid log(0)
-        y_true = np.clip(y_true, 1e-15, None)
-        y_pred = np.clip(y_pred, 1e-15, None)
-        return np.sqrt(mean_squared_error(np.log(y_true), np.log(y_pred)))
-    
     for name, model in models.items():
+        st.subheader(f":green[Training {name}]")
+        
         # Split training data into batches of 10
-        batch_size = 10
+        n_batches = 10
         n_samples = X_train.shape[0]
-        n_batches = n_samples // batch_size + (1 if n_samples % batch_size else 0)
+        batch_size = n_samples // n_batches
+        if n_samples % n_batches != 0:
+            batch_size += 1  # Round up to ensure all samples are covered
         
         best_batch_model = None
         best_batch_rmsle = float('inf')
         best_batch_r2 = -float('inf')
         
-        for i in range(n_batches):
-            start_idx = i * batch_size
-            end_idx = min((i + 1) * batch_size, n_samples)
-            
-            X_batch = X_train[start_idx:end_idx]
-            y_batch = y_train[start_idx:end_idx]
-            
-            # Train model on batch
-            batch_model = type(model)()  # Create new instance of same model type
-            batch_model.fit(X_batch, y_batch)
-            
-            # Evaluate on test set
-            y_pred = batch_model.predict(X_test)
-            batch_rmsle = rmsle(y_test, y_pred)
-            batch_r2 = r2_score(y_test, y_pred)
-            
-            # Update best batch model if better
-            if batch_rmsle < best_batch_rmsle and batch_r2 > best_batch_r2:
-                best_batch_model = batch_model
-                best_batch_rmsle = batch_rmsle
-                best_batch_r2 = batch_r2
+        # Create columns for batch results
+        cols = st.columns(5)  # Display 5 batches per row
         
-        # Use best batch model for final predictions
-        y_pred = best_batch_model.predict(X_test)
-        rmsle_score = rmsle(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
-        
-        results[name] = {'RMSLE': rmsle_score, 'R2': r2}
-        
-        # Track best model based on both RMSLE and R2
-        if rmsle_score < best_score:
-            best_score = rmsle_score
-            best_model = best_batch_model
-            best_model_name = name
+        with st.container(border=True):
+            for i in range(n_batches):
+                start_idx = i * batch_size
+                end_idx = min((i + 1) * batch_size, n_samples)
+                
+                X_batch = X_train[start_idx:end_idx]
+                y_batch = y_train[start_idx:end_idx]
+                
+                # Train model on batch
+                batch_model = type(model)()  # Create new instance of same model type
+                batch_model.fit(X_batch, y_batch)
+                
+                # Evaluate on test set
+                y_pred = batch_model.predict(X_test)
+                batch_rmsle = rmsle(y_test, y_pred)
+                batch_r2 = r2_score(y_test, y_pred)
+                
+                # Display results in columns
+                with cols[i % 5].container(border=True):
+                    st.markdown(f"**Batch {i+1}/{n_batches}**")
+                    st.markdown(f"- RMSLE: {batch_rmsle:.4f}")
+                    st.markdown(f"- R² Score: {batch_r2:.4f}")
+                
+                # Update best batch model if better
+                if batch_rmsle < best_batch_rmsle and batch_r2 > best_batch_r2:
+                    best_batch_model = batch_model
+                    best_batch_rmsle = batch_rmsle
+                    best_batch_r2 = batch_r2
+            
+            # Use best batch model for final predictions
+            y_pred = best_batch_model.predict(X_test)
+            rmsle_score = rmsle(y_test, y_pred)
+            r2 = r2_score(y_test, y_pred)
+            
+            with st.container(border=True):
+                st.markdown(f"#### Final {name} Results")
+                st.markdown(f"- Best RMSLE: {rmsle_score:.4f}")
+                st.markdown(f"- Best R² Score: {r2:.4f}")
+                
+                results[name] = {'RMSLE': rmsle_score, 'R2': r2}
+                
+                # Track best model based on both RMSLE and R2
+                if rmsle_score < best_score:
+                    best_score = rmsle_score
+                    best_model = best_batch_model
+                    best_model_name = name
+                    st.markdown("🌟 **New overall best model!**")
     
     # Display results
-    st.subheader("Model Performance Comparison")
+    st.markdown('---')
+    st.header(":blue[Model Performance Comparison]")
+
+
     results_df = pd.DataFrame(results)
     st.dataframe(results_df, use_container_width=True)
     
@@ -437,10 +467,12 @@ def build_models(X_selected, y):
     st.plotly_chart(fig)
     
     # Display best model info
-    st.subheader("Best Performing Model")
-    st.write(f"Best model: {best_model_name}")
-    st.write(f"RMSLE Score: {best_score:.4f}")
-    st.write(f"R² Score: {results[best_model_name]['R2']:.4f}")
+    st.subheader(":green[Best Performing Model]")
+
+    with st.container(border=True):
+        st.markdown(f"**Best model:** {best_model_name}")
+        st.markdown(f"**RMSLE Score:** {best_score:.4f}")
+        st.markdown(f"**R² Score:** {results[best_model_name]['R2']:.4f}")
     
     # Save best model in session state
     st.session_state['best_model'] = best_model
@@ -451,7 +483,7 @@ def build_models(X_selected, y):
 
 
 def make_predictions(preprocessor, selector, models):
-    st.header("Prediction on New Data")
+    st.header(":blue[Prediction on New Data]")
     
     uploaded_file = st.file_uploader("Upload your data file (CSV)", type="csv")
     
