@@ -403,7 +403,7 @@ def build_models(X_selected, y):
         cols = st.columns(5)  # Display 5 batches per row
         
         with st.container(border=True):
-            for i in range(n_batches):
+            for i in [0,1]:
                 start_idx = i * batch_size
                 end_idx = min((i + 1) * batch_size, n_samples)
                 
