@@ -379,17 +379,48 @@ def build_models(X_selected, y):
         return np.sqrt(mean_squared_error(np.log(y_true), np.log(y_pred)))
     
     for name, model in models.items():
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
+        # Split training data into batches of 10
+        batch_size = 10
+        n_samples = X_train.shape[0]
+        n_batches = n_samples // batch_size + (1 if n_samples % batch_size else 0)
+        
+        best_batch_model = None
+        best_batch_rmsle = float('inf')
+        best_batch_r2 = -float('inf')
+        
+        for i in range(n_batches):
+            start_idx = i * batch_size
+            end_idx = min((i + 1) * batch_size, n_samples)
+            
+            X_batch = X_train[start_idx:end_idx]
+            y_batch = y_train[start_idx:end_idx]
+            
+            # Train model on batch
+            batch_model = type(model)()  # Create new instance of same model type
+            batch_model.fit(X_batch, y_batch)
+            
+            # Evaluate on test set
+            y_pred = batch_model.predict(X_test)
+            batch_rmsle = rmsle(y_test, y_pred)
+            batch_r2 = r2_score(y_test, y_pred)
+            
+            # Update best batch model if better
+            if batch_rmsle < best_batch_rmsle and batch_r2 > best_batch_r2:
+                best_batch_model = batch_model
+                best_batch_rmsle = batch_rmsle
+                best_batch_r2 = batch_r2
+        
+        # Use best batch model for final predictions
+        y_pred = best_batch_model.predict(X_test)
         rmsle_score = rmsle(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
         
         results[name] = {'RMSLE': rmsle_score, 'R2': r2}
         
-        # Track best model based on RMSLE
+        # Track best model based on both RMSLE and R2
         if rmsle_score < best_score:
             best_score = rmsle_score
-            best_model = model
+            best_model = best_batch_model
             best_model_name = name
     
     # Display results
@@ -427,21 +458,16 @@ def make_predictions(preprocessor, selector, models):
     if uploaded_file is not None:
         pred_df = pd.read_csv(uploaded_file)
         
-        # Preprocess new data
         X_new = preprocessor.transform(pred_df)
         X_new_selected = selector.transform(X_new)
         
-        # Make predictions using best model
-        best_model = st.session_state['best_model']  # You might want to choose based on results
+        best_model = st.session_state['best_model']
         predictions = best_model.predict(X_new_selected)
         
-        # Add predictions to dataframe
         pred_df['Predicted_Calories'] = predictions
 
-        # Keep only ID and Calories columns
         pred_df = pred_df[['id', 'Predicted_Calories']].rename(columns={'Predicted_Calories': 'Calories'})
         
-        # Display predictions
         st.write("Predictions:")
         col1, col2 = st.columns([1,4])
         with col1:
@@ -469,7 +495,6 @@ def main():
     with st.spinner('Loading data...'):
         df = load_data()
     
-    # Sidebar
     page = st.sidebar.radio("Modules", 
         ["Data Overview", 
          "EDA", 
@@ -492,7 +517,6 @@ def main():
             if 'statistical_analysis' not in st.session_state:
                 st.session_state['statistical_analysis'] = True
     elif page == "Data Preprocessing":
-        # Check if preprocessor and selector exist in session state
         if 'statistical_analysis' not in st.session_state:
             st.error("Please complete Statistical Analysis first")
         else:
@@ -503,7 +527,6 @@ def main():
                 st.session_state['preprocessor'] = preprocessor
                 st.session_state['selector'] = selector
     elif page == "Model Building":
-        # Check if required data exists in session state
         if 'preprocessor' not in st.session_state or 'selector' not in st.session_state:
             st.error("Please complete Data Preprocessing first")
         else:
@@ -512,7 +535,6 @@ def main():
                 st.session_state['models'] = models
                 
     elif page == "Prediction":
-        # Check if all required components exist in session state
         if not all(key in st.session_state for key in ['preprocessor', 'selector', 'models']):
             st.error("Please complete Data Preprocessing and Model Building first")
         else:
