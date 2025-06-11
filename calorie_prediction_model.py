@@ -414,7 +414,11 @@ def train_and_evaluate_models(X_selected, y, test_size, n_batches, selected_batc
     batch_models = {}
     
     # Train models that have been submitted
-    for name, model_class in models.items():
+    progress_bar = st.progress(0)
+    for i, (name, model_class) in enumerate(models.items()):
+        progress = (i + 1) / len(models)
+        progress_bar.progress(progress, text=f"Training {name}...")
+        
         if name in st.session_state.model_configs:
             config = st.session_state.model_configs[name]
             
@@ -470,6 +474,8 @@ def train_and_evaluate_models(X_selected, y, test_size, n_batches, selected_batc
                     best_model_name = name
 
         batch_models[name] = batch_model
+
+    progress_bar.empty()
     
     # Display results comparison
     if results:
@@ -546,13 +552,13 @@ def build_models(X_selected, y):
         cols = st.columns(5)
         
         with cols[0]:
-            with st.expander("Linear Regression Parameters"):
+            with st.expander("Linear Regression Parameters", expanded=True):
                 lr_fit_intercept = st.checkbox("Fit Intercept", value=True, key='lr_fit')
                 lr_config = {'fit_intercept': lr_fit_intercept}
                     
             
         with cols[1]:
-            with st.expander("Decision Tree Parameters"):
+            with st.expander("Decision Tree Parameters", expanded=True):
                 dt_max_depth = st.slider("Max Depth", 1, 20, 5, key='dt_depth')
                 dt_min_samples_split = st.slider("Min Samples Split", 2, 20, 2, key='dt_split')
                 dt_config = {
@@ -561,7 +567,7 @@ def build_models(X_selected, y):
                 }
         
         with cols[2]:
-            with st.expander("Random Forest Parameters"):
+            with st.expander("Random Forest Parameters", expanded=True):
                 rf_n_estimators = st.slider("Number of Trees", 10, 200, 100, key='rf_trees')
                 rf_max_depth = st.slider("Max Depth", 1, 20, 5, key='rf_depth')
                 rf_config = {
@@ -570,7 +576,7 @@ def build_models(X_selected, y):
                 }
             
         with cols[3]:
-            with st.expander("Gradient Boosting Parameters"):
+            with st.expander("Gradient Boosting Parameters", expanded=True):
                 gb_n_estimators = st.slider("Number of Trees", 10, 200, 100, key='gb_trees')
                 gb_learning_rate = st.slider("Learning Rate", 0.01, 0.3, 0.1, key='gb_lr')
                 gb_config = {
@@ -579,7 +585,7 @@ def build_models(X_selected, y):
                 }
         
         with cols[4]:            
-            with st.expander("XGBoost Parameters"):
+            with st.expander("XGBoost Parameters", expanded=True):
                 xgb_n_estimators = st.slider("Number of Trees", 10, 200, 100, key='xgb_trees')
                 xgb_learning_rate = st.slider("Learning Rate", 0.01, 0.3, 0.1, key='xgb_lr')
                 xgb_max_depth = st.slider("Max Depth", 1, 20, 5, key='xgb_depth')
