@@ -376,8 +376,8 @@ def build_models(X_selected, y):
     models = {
         'Linear Regression': LinearRegression(),
         'Decision Tree': DecisionTreeRegressor(),
-        # 'Random Forest': RandomForestRegressor(),
-        # 'Gradient Boosting': GradientBoostingRegressor()
+        'Random Forest': RandomForestRegressor(),
+        'Gradient Boosting': GradientBoostingRegressor()
     }
     
     results = {}
